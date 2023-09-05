@@ -221,7 +221,7 @@ class GsPriceStore(PriceStore):
         raise NotImplementedError()
 
     def path_exists(self):
-        blobs = self.bucket.list_blobs(prefix=str(self._price_path), max_results=0)
+        blobs = self.bucket.list_blobs(prefix=str(self._price_path), max_results=1)
         for _ in blobs:
             return True
 
