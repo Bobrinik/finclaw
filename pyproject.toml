@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "finclaw"
-version = "0.0.1"
+version = "0.0.2"
 description = ""
 authors = ["bobrinik <bobrinik@pm.me>"]
 readme = "README.md"
