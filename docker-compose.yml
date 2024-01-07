@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  service:
+    image: "${IMAGE}:${COMMIT_HASH}"
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command:  ["python", "tools/run_daily_eod.py"]
+    environment:
+      - TRADE_ENGINE_DATA=${TRADE_ENGINE_DATA}
+      - FINNHUB_API= ${FINNHUB_API}
+      - FINNHUB_STORAGE=${FINNHUB_STORAGE}
+      # FMP creds
+      - FMP_API_KEY=${FMP_API_KEY}
+      - TWELVEDATA_API_KEY=${TWELVEDATA_API_KEY}
+      # Kraken creds
+      - KRAKEN_API_KEY=${KRAKEN_API_KEY}
+      - KRAKEN_API_SECRET=${KRAKEN_API_SECRET}
