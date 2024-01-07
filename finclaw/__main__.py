@@ -16,6 +16,7 @@ from finclaw.vendor.finnhub.pull_ownership import pull_ownership_data_for
 from finclaw.vendor.finnhub.pull_splits import pull_splits
 from finclaw.vendor.finnhub.symbols import get_symbols_for
 from finclaw.vendor.fmp import fmp
+from typing import Optional, List
 
 
 @click.group
@@ -23,13 +24,20 @@ def main():
     pass
 
 
-def fmp_vendor(*, store, frequency, include_information, market, start: pd.Timestamp, end: pd.Timestamp):
+def fmp_vendor(*, store, frequency, include_information, market, start: pd.Timestamp, end: pd.Timestamp, symbol: Optional[List[str]] = None):
+    include_information = include_information.split(",")
+    if symbol is None:
+        symbols: List[str] = asyncio.run(fmp.get_symbol_table(market=market)).to_pandas().ticker.values
+    else:
+        symbols: List[str] = symbol
+
     if "p" in include_information:
-        symbols = asyncio.run(fmp.get_symbol_table(market=market)).to_pandas().ticker.values
         fmp.pull_symbols(store=store, market=market, start=start, end=end)
         fmp.pull_ohcl_data(store=store, symbols=symbols, start=start, end=end, frequency=frequency)
-    else:
-        raise NotImplementedError()
+
+    financial_statements = {"bs", "ic", "cf"} & set(include_information)
+    if financial_statements:
+        fmp.pull_financials(store=store, symbols=symbols, start=start, end=end, statements=financial_statements)
 
 
 def twelve_data_vendor(*, store, frequency: str, include_information: str, market_id_code: str, start: pd.Timestamp,
@@ -70,7 +78,7 @@ def twelve_data_vendor(*, store, frequency: str, include_information: str, marke
     "--market",
     type=click.Choice(["US", "TO"]),
     help="What's the market to use?",
-    required=False
+    required=True
 )
 @click.option(
     "-mic",
@@ -91,8 +99,15 @@ def twelve_data_vendor(*, store, frequency: str, include_information: str, marke
     help="Vendor to use",
     required=True
 )
+@click.option(
+    "-s",
+    "--symbol",
+    help="Vendor to use",
+    multiple=True,
+    required=False
+)
 def grab(start: Timestamp, end: Timestamp, frequency: str, market: str, include_information: str, vendor: str,
-         market_id_code: str):
+         market_id_code: str, symbol: Optional[List[str]]) -> None:
     """
     Grabs data from a vendor and stores it on local
     :param start: Normalized (floor down) so 2012-01-01T12:15:16 -> 2012-01-01T00:00:00
@@ -108,17 +123,14 @@ def grab(start: Timestamp, end: Timestamp, frequency: str, market: str, include_
         finnhub_vendor(store, end, frequency, include_information, market, start)
     elif vendor == "fmp":
         fmp_vendor(store=store, frequency=frequency, include_information=include_information, market=market,
-                   start=start, end=end)
+                   start=start, end=end, symbol=symbol)
     elif vendor == "twelvedata":
         twelve_data_vendor(store=store, frequency=frequency, include_information=include_information,
                            market_id_code=market_id_code,
                            start=start, end=end)
-    return 0
-
 
 def finnhub_vendor(store, end, frequency, include_information, market, start):
     _, symbols = get_symbols_for(market)
-
     if "o" in include_information:
         pull_ownership_data_for(store=store, symbols=symbols, start=start, end=end)
     if "i" in include_information:
@@ -130,12 +142,13 @@ def finnhub_vendor(store, end, frequency, include_information, market, start):
     if "s" in include_information:
         pull_splits(store=store, symbols=symbols, start=start, end=end)
     if "p" in include_information:
+        include_company_information = "c" in include_information
         pull_ohcl_data(store=store,
                        start=start,
                        end=end,
                        frequency=frequency,
                        market=market,
-                       include_company_information=True)
+                       include_company_information=include_company_information)
 
 
 # Press the green button in the gutter to run the script.
