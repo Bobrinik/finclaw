@@ -295,3 +295,4 @@ pyrightconfig.json
 data/*
 crons/*
 notebooks/*
+.idea/
