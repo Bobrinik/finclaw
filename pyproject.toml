@@ -6,7 +6,7 @@ authors = ["bobrinik <bobrinik@pm.me>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-greet = "finclaw.main:main"
+finclaw = "finclaw.__main__:main"
 
 [tool.poetry.dependencies]
 python = "^3.10"
