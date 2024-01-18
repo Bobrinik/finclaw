@@ -22,9 +22,11 @@ def start_job(vendor, market):
         jobDefinition='finclaw-fetch',
         containerOverrides={
             'command': [
-                'python', 'tools/run_daily_eod.py', '--start', start, '--end', end, '--vendor', vendor, '--market',
-                market
+                'python', 'tools/run_daily_eod.py', '--start', start, '--end', end, '--vendor', vendor, '--market', market
             ],
+        },
+        timeout={
+            'attemptDurationSeconds': 3600
         }
     )
     logger.info("Submitted job: {}".format(response['jobId']))
