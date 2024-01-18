@@ -15,14 +15,15 @@ start = start.strftime('%Y-%m-%dT%H:%M:%S')
 end = end.strftime('%Y-%m-%dT%H:%M:%S')
 
 
-def start_job(vendor):
+def start_job(vendor, market):
     response = client.submit_job(
         jobName=f'fetch-{vendor}-job-{datetime.now().strftime("%Y-%m-%d-%H_%M")}',
         jobQueue=JOB_QUE_NAME,
         jobDefinition='finclaw-fetch',
         containerOverrides={
             'command': [
-                'python', 'tools/run_daily_eod.py', '--start', start, '--end', end, '--vendor', vendor
+                'python', 'tools/run_daily_eod.py', '--start', start, '--end', end, '--vendor', vendor, '--market',
+                market
             ],
         }
     )
@@ -31,7 +32,7 @@ def start_job(vendor):
 
 
 def lambda_handler(event, context):
-    resp = start_job(event["vendor"])
+    resp = start_job(event["vendor"], event["market"])
     return {
         'statusCode': 200,
         'body': json.dumps(resp)
