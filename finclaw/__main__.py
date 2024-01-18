@@ -26,7 +26,7 @@ def main():
 
 def fmp_vendor(*, store, frequency, include_information, market, start: pd.Timestamp, end: pd.Timestamp, symbol: Optional[List[str]] = None):
     include_information = include_information.split(",")
-    if symbol is None:
+    if not symbol:
         symbols: List[str] = asyncio.run(fmp.get_symbol_table(market=market)).to_pandas().ticker.values
     else:
         symbols: List[str] = symbol
