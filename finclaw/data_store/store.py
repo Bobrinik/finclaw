@@ -39,6 +39,9 @@ class PriceStore:
         self._price_path: Path = Path(path_to_price_store)
         date_of_store = path_to_price_store.split("/")[-1]
 
+    def list_datasets(self):
+        return os.listdir(self._price_path)
+
     # Loading logic
     def load_prices(self, *, start: Optional[pd.Timestamp] = None, end: Optional[pd.Timestamp] = None, frequency: str,
                     vendor: str) -> pa.Table:
@@ -88,10 +91,10 @@ class PriceStore:
         dataset = pq.ParquetDataset(symbol_path, use_legacy_dataset=False)
         return dataset.read()
 
-    def load_financials(self, vendor: str, statement_type: str):
+    def load_financials(self, statement_type: str):
         self.path_exists()
 
-        financial_store_path = self.get_financial_statement_store_path(vendor=vendor, statement_type=statement_type)
+        financial_store_path = self.get_financial_statement_store_path(statement_type=statement_type)
         dataset = pq.ParquetDataset(financial_store_path, use_legacy_dataset=False)
         return dataset.read()
 
@@ -177,8 +180,8 @@ class PriceStore:
     def get_dividend_store_path(self, vendor):
         return self._price_path / vendor / "dividends"
 
-    def get_financial_statement_store_path(self, vendor, statement_type):
-        return self._price_path / vendor / statement_type
+    def get_financial_statement_store_path(self, statement_type):
+        return self._price_path / statement_type
 
     def get_split_store_path(self, vendor):
         return self._price_path / vendor / "splits"
