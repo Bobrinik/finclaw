@@ -3,6 +3,7 @@ version: '3.8'
 services:
   service:
     image: "${IMAGE}:${COMMIT_HASH}"
+    platform: "linux/amd64"
     build:
       context: .
       dockerfile: Dockerfile
@@ -17,3 +18,8 @@ services:
       # Kraken creds
       - KRAKEN_API_KEY=${KRAKEN_API_KEY}
       - KRAKEN_API_SECRET=${KRAKEN_API_SECRET}
+    volumes:
+      - data:/data
+
+volumes:
+  data:
