@@ -6,12 +6,13 @@ import pyarrow as pa
 from pyarrow import parquet as pq
 from pathlib import Path
 from google.cloud import storage
+import boto3
 import os
-
+from pyarrow import fs
 from finclaw.data_store.schema import OHCL
 
 """
-These are the stores that are responsible for storing normalized data
+These are the storage_clients that are responsible for storing normalized data
 """
 
 
@@ -250,3 +251,4 @@ class GsPriceStore(PriceStore):
             return self.load_table(price_dataset_name, price_store, OHCL)
         else:
             return pq.read_table(f"gs://{self.bucket.name}/{self._price_path}", schema=OHCL)
+
