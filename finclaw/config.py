@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 def is_running_in_jupyter():
     try:
         shell = get_ipython().__class__.__name__
-        if shell == 'ZMQInteractiveShell':
+        if shell == "ZMQInteractiveShell":
             return True  # Jupyter Notebook
-        elif shell == 'TerminalInteractiveShell':
+        elif shell == "TerminalInteractiveShell":
             return False  # Terminal running IPython
         else:
             return False  # Other type, assume not a Jupyter Notebook
@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     # Kraken creds
     KRAKEN_API_KEY: str
     KRAKEN_API_SECRET: str
+    USE_TQDM: bool = False
 
 
 if is_running_in_jupyter():

@@ -5,7 +5,7 @@ from typing import List, Optional, Union, Dict
 
 import pandas as pd
 import pyarrow as pa
-from tqdm import tqdm
+from finclaw.utils.progress_bar import progress_bar
 
 from finclaw.config import settings
 from finclaw.data_store.store import PriceStore
@@ -24,7 +24,9 @@ class Snapshot:
         :param days:
         :return:
         """
-        return self.data[(self.data.index.max() - pd.Timedelta(days=days)) <= self.data.index]
+        return self.data[
+            (self.data.index.max() - pd.Timedelta(days=days)) <= self.data.index
+        ]
 
 
 class DataPortal:
@@ -35,11 +37,7 @@ class DataPortal:
     """
 
     def __init__(
-            self,
-            price_store: PriceStore,
-            start: pd.Timestamp,
-            end: pd.Timestamp,
-            step
+        self, price_store: PriceStore, start: pd.Timestamp, end: pd.Timestamp, step
     ):
         self.price_data: Optional[pd.DataFrame] = None
         self._price_store = price_store
@@ -48,11 +46,17 @@ class DataPortal:
         self.end = end
         self.step = step
 
-    def load_price_data(self, *, start: pd.Timestamp, end: pd.Timestamp, frequency: str, vendor: str) -> pa.Table:
-        return self._price_store.load_prices(start=start, end=end, frequency=frequency, vendor=vendor)
+    def load_price_data(
+        self, *, start: pd.Timestamp, end: pd.Timestamp, frequency: str, vendor: str
+    ) -> pa.Table:
+        return self._price_store.load_prices(
+            start=start, end=end, frequency=frequency, vendor=vendor
+        )
 
     def init(self):
-        price = self.load_price_data(start=self.start, end=self.end, frequency="D", vendor="finnhub")
+        price = self.load_price_data(
+            start=self.start, end=self.end, frequency="D", vendor="finnhub"
+        )
         df = price.to_pandas()
         df.index = df.timestamp
         self.price_data = df
@@ -70,11 +74,14 @@ class DataPortal:
         # Note, we want a copy
         price_df = self.price_data[self.price_data.index <= current_date]
 
-        return DataChunk(current_date=self.current_date,
-                         price_ohcl_daily=Snapshot(price_df))
+        return DataChunk(
+            current_date=self.current_date, price_ohcl_daily=Snapshot(price_df)
+        )
 
 
-def list_stores(path=settings.TRADE_ENGINE_DATA, is_dict=False) -> Union[List[PriceStore], Dict[str, PriceStore]]:
+def list_stores(
+    path=settings.TRADE_ENGINE_DATA, is_dict=False
+) -> Union[List[PriceStore], Dict[str, PriceStore]]:
     if not is_dict:
         return [PriceStore(path + "/" + ps_path) for ps_path in os.listdir(path)]
     result = {}
@@ -84,7 +91,9 @@ def list_stores(path=settings.TRADE_ENGINE_DATA, is_dict=False) -> Union[List[Pr
     return result
 
 
-def get_ohclv(store: Union[PriceStore, List[PriceStore]], *, frequency: str, vendor: str) -> pa.Table:
+def get_ohclv(
+    store: Union[PriceStore, List[PriceStore]], *, frequency: str, vendor: str
+) -> pa.Table:
     """
     Args:
         vendor:
@@ -113,7 +122,9 @@ def get_ohclv(store: Union[PriceStore, List[PriceStore]], *, frequency: str, ven
     return price
 
 
-def get_financials(store: Union[PriceStore, List[PriceStore]], *, vendor: str, statement_type: str) -> pa.Table:
+def get_financials(
+    store: Union[PriceStore, List[PriceStore]], *, vendor: str, statement_type: str
+) -> pa.Table:
     validate_vendor(vendor)
     if isinstance(store, PriceStore):
         financials = store.load_financials(vendor=vendor, statement_type=statement_type)
@@ -139,10 +150,7 @@ def get_insiders(store: Union[PriceStore, List[PriceStore]], *, vendor) -> pa.Ta
         insiders = store.load_insiders(vendor=vendor)
     elif isinstance(store, list):
         insiders = pa.concat_tables(
-            [
-                get_insiders(s, vendor=vendor)
-                for s in tqdm(store)
-            ]
+            [get_insiders(s, vendor=vendor) for s in tqdm(store)]
         )
     else:
         raise ValueError("store needs to be a PriceStore or a List[PriceStore]")

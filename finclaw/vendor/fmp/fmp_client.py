@@ -1,12 +1,9 @@
 import asyncio
-import re
-from typing import Optional, List
 
 import aiohttp
 
 from finclaw.config import logger
 from finclaw.config import settings
-from finclaw.vendor.exceptions import NotSuccessfull
 
 API_BASE = "https://financialmodelingprep.com/api/v3/"
 
@@ -67,5 +64,7 @@ async def get_financials_for(session: aiohttp.ClientSession, symbol: str, statem
         raise ValueError(f"freq:{freq} should be one of {periods}")
 
     return await _call_api(
-            session, f"{API_BASE}{endpoint_map[statement]}/{symbol}", payload="", querystring={"period": freq}
-        )
+        session, f"{API_BASE}{endpoint_map[statement]}/{symbol}", payload="", querystring={"period": freq}
+    )
+
+

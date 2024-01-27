@@ -5,10 +5,11 @@ from typing import List
 import aiohttp
 import pandas as pd
 import pyarrow as pa
+
 # from google.cloud import storage
 import pytz
 from pandas import Timestamp
-from tqdm import tqdm
+from finclaw.utils.progress_bar import progress_bar
 
 from finclaw.config import logger
 from finclaw.data_store.schema import STOCK_SYMBOL
@@ -24,7 +25,7 @@ VENDOR = "finnhub"
 
 def data_to_df(data):
     df = pd.DataFrame(data=data)
-    df.index = pd.to_datetime(df.t, unit='s')
+    df.index = pd.to_datetime(df.t, unit="s")
     return df
 
 
@@ -38,7 +39,9 @@ def get_human_time() -> str:
 
 def store_df_in_gs(symbol, df):
     day = datetime.now(tz=pytz.UTC).strftime("%Y-%m-%d")
-    blob = bucket.blob(f"finnhub/common_stocks/ohcl_daily/{day}/{symbol}_{get_human_time()}")
+    blob = bucket.blob(
+        f"finnhub/common_stocks/ohcl_daily/{day}/{symbol}_{get_human_time()}"
+    )
     blob.upload_from_string(df.to_csv())
 
 
@@ -53,9 +56,11 @@ async def get_ohcl_data_for(session, start, end, symbol: str, frequency: str = "
 
 
 async def get_ohcl_data_(session, start: int, end: int, frequency, symbol):
-    data = await get_stock_candle(session=session, symbol=symbol, resolution=frequency, from_=start, to=end)
+    data = await get_stock_candle(
+        session=session, symbol=symbol, resolution=frequency, from_=start, to=end
+    )
 
-    return None if data['s'] == "no_data" else data
+    return None if data["s"] == "no_data" else data
 
 
 async def get_ohcl_table_for(start: int, end: int, symbols: List[str], frequency: str):
@@ -68,7 +73,9 @@ async def get_ohcl_table_for(start: int, end: int, symbols: List[str], frequency
             if idx % 100 == 0:
                 logger.info(f"Remaining: {symbols_n - idx}")
 
-            table = await get_ohcl_data_for(session, start, end, symbol, frequency=frequency)
+            table = await get_ohcl_data_for(
+                session, start, end, symbol, frequency=frequency
+            )
             if isinstance(table, pa.Table):
                 tables.append(table)
             else:
@@ -99,8 +106,15 @@ async def get_company_table_for(symbols: List[str]) -> pa.Table:
         return pa.concat_tables(tables)
 
 
-def pull_ohcl_data(*, store, start: Timestamp, end: Timestamp, market: str, frequency: str,
-                   include_company_information: bool = True):
+def pull_ohcl_data(
+    *,
+    store,
+    start: Timestamp,
+    end: Timestamp,
+    market: str,
+    frequency: str,
+    include_company_information: bool = True,
+):
     company_table = None
 
     df_symbols, symbols = get_symbols_for(market)
@@ -112,12 +126,16 @@ def pull_ohcl_data(*, store, start: Timestamp, end: Timestamp, market: str, freq
     if include_company_information:
         company_table = asyncio.run(get_company_table_for(symbols=symbols))
 
-    table = asyncio.run(get_ohcl_table_for(start_timestamp, end_timestamp, symbols, frequency))
+    table = asyncio.run(
+        get_ohcl_table_for(start_timestamp, end_timestamp, symbols, frequency)
+    )
 
-    store.store(symbol_table=symbol_table,
-                price_table=table,
-                company_table=company_table,
-                start=start,
-                end=end,
-                frequency=frequency,
-                vendor=VENDOR)
+    store.store(
+        symbol_table=symbol_table,
+        price_table=table,
+        company_table=company_table,
+        start=start,
+        end=end,
+        frequency=frequency,
+        vendor=VENDOR,
+    )
