@@ -19,7 +19,7 @@ async def get_dividends(
     end = end.strftime("%Y-%m-%d")
 
     result = []
-    for symbol in tqdm(symbols, desc="Pulling dividend information"):
+    for symbol in progress_bar(symbols, desc="Pulling dividend information"):
         try:
             async with aiohttp.ClientSession() as session:
                 symbol_dividend_records = await get_dividend(

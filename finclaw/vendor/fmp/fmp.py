@@ -69,7 +69,7 @@ async def get_ohcl_data(
 
     print("Getting OHCL data")
     dfs = []
-    for symbol in tqdm(symbols):
+    for symbol in progress_bar(symbols):
         symbol_df = await get_ohcl_for_symbol(
             session=session, symbol=symbol, resolution=frequency
         )
@@ -134,7 +134,7 @@ async def get_financials(
 
     records = []
     async with aiohttp.ClientSession() as session:
-        for symbol in tqdm(symbols):
+        for symbol in progress_bar(symbols):
             result = await get_financials_for(session, symbol, statement, freq)
             if not result:
                 logger.warn(f"Could not get {statement} financials for {symbol}")

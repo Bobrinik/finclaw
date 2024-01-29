@@ -69,7 +69,7 @@ async def get_ohcl_table_for(start: int, end: int, symbols: List[str], frequency
     symbols_n = len(symbols)
     # Partition symbols into groups of 3 and then do concurrent call
     async with aiohttp.ClientSession() as session:
-        for idx, symbol in tqdm(enumerate(symbols), total=symbols_n):
+        for idx, symbol in progress_bar(enumerate(symbols), total=symbols_n):
             if idx % 100 == 0:
                 logger.info(f"Remaining: {symbols_n - idx}")
 
@@ -89,7 +89,7 @@ async def get_company_table_for(symbols: List[str]) -> pa.Table:
     symbols_n = len(symbols)
     # Partition symbols into groups of 3 and then do concurrent call
     async with aiohttp.ClientSession() as session:
-        for idx, symbol in tqdm(enumerate(symbols), total=symbols_n):
+        for idx, symbol in progress_bar(enumerate(symbols), total=symbols_n):
             if idx % 100 == 0:
                 logger.info(f"Remaining: {symbols_n - idx}")
 

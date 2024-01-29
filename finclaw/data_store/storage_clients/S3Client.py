@@ -55,12 +55,14 @@ class S3StoreClient(StoreClient):
         result = self._s3_fs.get_file_info(file_path)
         return result.type != fs.FileType.NotFound
 
-    def load_table(self, path: str, schema: Optional[pa.Schema] = None):
+    def load_table(self, path: Path, schema: Optional[pa.Schema] = None):
+        path = str(Path(self._bucket_name) / path)
+        path = str(path)
         dataset = pq.ParquetDataset(
             path, use_legacy_dataset=False, schema=schema, filesystem=self._s3_fs
         )
         table: pa.Table = dataset.read()
-        return
+        return table
 
     def write_table(self, table: pa.Table, path: str | Path):
         if isinstance(path, Path):

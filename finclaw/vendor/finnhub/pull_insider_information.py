@@ -11,7 +11,7 @@ from finclaw.vendor.finnhub.finnhub_client import get_insider_transactions
 
 async def get_insider_information_table(symbols: List[str]) -> pa.Table:
     result = []
-    for symbol in tqdm(symbols, desc="Pulling insider information"):
+    for symbol in progress_bar(symbols, desc="Pulling insider information"):
         async with aiohttp.ClientSession() as session:
             insider_transaction_records = await get_insider_transactions(
                 session, symbol=symbol

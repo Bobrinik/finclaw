@@ -22,7 +22,7 @@ async def get_financials(
     #  TODO:  This is going to be different for each symbol
     #  because the financials are different for each symbol
     result = []
-    for symbol in tqdm(symbols, desc="Pulling financials"):
+    for symbol in progress_bar(symbols, desc="Pulling financials"):
         async with aiohttp.ClientSession() as session:
             financial_records = await get_financials_for(
                 session, symbol=symbol, statement=statement, freq=freq

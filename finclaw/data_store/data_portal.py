@@ -5,6 +5,8 @@ from typing import List, Optional, Union, Dict
 
 import pandas as pd
 import pyarrow as pa
+
+from finclaw.data_store.storeV2 import PriceStoreV2
 from finclaw.utils.progress_bar import progress_bar
 
 from finclaw.config import settings
@@ -91,6 +93,21 @@ def list_stores(
     return result
 
 
+def list_stores_s3(
+    storage_client, path=settings.TRADE_ENGINE_DATA, is_dict=False
+) -> Union[List[PriceStoreV2], Dict[str, PriceStoreV2]]:
+    if not is_dict:
+        return [
+            PriceStoreV2(path + "/" + ps_path, storage_client)
+            for ps_path in storage_client.listdir(path)
+        ]
+    result = {}
+    for ps_path in storage_client.listdir(path):
+        ps = PriceStoreV2(path + "/" + ps_path, storage_client)
+        result[f"{repr(ps)}"] = ps
+    return result
+
+
 def get_ohclv(
     store: Union[PriceStore, List[PriceStore]], *, frequency: str, vendor: str
 ) -> pa.Table:
@@ -113,7 +130,7 @@ def get_ohclv(
                     frequency=frequency,
                     vendor=vendor,
                 )
-                for s in tqdm(store)
+                for s in progress_bar(store)
             ]
         )
     else:
@@ -136,7 +153,7 @@ def get_financials(
                     vendor=vendor,
                     statement_type=statement_type,
                 )
-                for s in tqdm(store)
+                for s in progress_bar(store)
             ]
         )
     else:
@@ -150,7 +167,7 @@ def get_insiders(store: Union[PriceStore, List[PriceStore]], *, vendor) -> pa.Ta
         insiders = store.load_insiders(vendor=vendor)
     elif isinstance(store, list):
         insiders = pa.concat_tables(
-            [get_insiders(s, vendor=vendor) for s in tqdm(store)]
+            [get_insiders(s, vendor=vendor) for s in progress_bar(store)]
         )
     else:
         raise ValueError("store needs to be a PriceStore or a List[PriceStore]")

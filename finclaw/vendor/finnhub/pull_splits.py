@@ -17,7 +17,7 @@ async def get_splits(
     end = end.strftime("%Y-%m-%d")
 
     result = []
-    for symbol in tqdm(symbols, desc="Pulling splits information:"):
+    for symbol in progress_bar(symbols, desc="Pulling splits information:"):
         async with aiohttp.ClientSession() as session:
             split_records = await fc.get_stock_splits(
                 session, symbol=symbol, from_=start, to=end

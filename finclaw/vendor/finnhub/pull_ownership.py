@@ -17,7 +17,9 @@ async def get_institutional_ownership_table(
     end = end.strftime("%Y-%m-%d")
 
     result = []
-    for symbol in tqdm(symbols, desc="Pulling institutional ownership information"):
+    for symbol in progress_bar(
+        symbols, desc="Pulling institutional ownership information"
+    ):
         async with aiohttp.ClientSession() as session:
             insider_transaction_records = await fc.get_institutional_ownership(
                 session, symbol=symbol, from_=start, to=end
@@ -33,7 +35,7 @@ async def get_institutional_ownership_table(
 
 async def get_fund_ownership_table(symbols: List[str]) -> pa.Table:
     result = []
-    for symbol in tqdm(symbols, desc="Pulling fund ownership information"):
+    for symbol in progress_bar(symbols, desc="Pulling fund ownership information"):
         async with aiohttp.ClientSession() as session:
             fund_ownership_record = await fc.get_fund_ownership(session, symbol=symbol)
             if table := models.to_fund_ownership_table(fund_ownership_record):
@@ -44,7 +46,7 @@ async def get_fund_ownership_table(symbols: List[str]) -> pa.Table:
 
 async def get_all_owners_table(symbols: List[str]) -> pa.Table:
     result = []
-    for symbol in tqdm(symbols, desc="Pull all owners data"):
+    for symbol in progress_bar(symbols, desc="Pull all owners data"):
         async with aiohttp.ClientSession() as session:
             all_owners_table = await fc.get_all_owners(session, symbol=symbol)
             if table := models.to_all_owners_table(all_owners_table):
