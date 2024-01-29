@@ -15,7 +15,7 @@ start = start.strftime("%Y-%m-%dT%H:%M:%S")
 end = end.strftime("%Y-%m-%dT%H:%M:%S")
 
 
-def start_job(vendor, market):
+def start_job(vendor, market, bucket_name, region):
     response = client.submit_job(
         jobName=f'fetch-{vendor}-job-{datetime.now().strftime("%Y-%m-%d-%H_%M")}',
         jobQueue=JOB_QUE_NAME,
@@ -32,14 +32,23 @@ def start_job(vendor, market):
                 vendor,
                 "--market",
                 market,
+                "--storage-type",
+                "s3",
+                "--bucket-name",
+                bucket_name,
+                "--region",
+                region,
             ],
         },
         timeout={"attemptDurationSeconds": 3600},
     )
     logger.info("Submitted job: {}".format(response["jobId"]))
     logger.info(f"Response: {response}")
+    return response
 
 
 def lambda_handler(event, context):
-    resp = start_job(event["vendor"], event["market"])
+    resp = start_job(
+        event["vendor"], event["market"], event["bucket_name"], event["region"]
+    )
     return {"statusCode": 200, "body": json.dumps(resp)}
