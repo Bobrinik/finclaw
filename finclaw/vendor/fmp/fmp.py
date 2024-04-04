@@ -1,11 +1,11 @@
 import asyncio
-from typing import Tuple, Any, List, Optional, Set
+from typing import List, Optional, Set
 
 import aiohttp
 import pandas as pd
+import pyarrow as pa
 import pytz
-from pandas import DataFrame, Timestamp
-from finclaw.utils.progress_bar import progress_bar
+from pandas import Timestamp
 
 from finclaw.config import logger
 from finclaw.data_store.schema import (
@@ -15,28 +15,31 @@ from finclaw.data_store.schema import (
     INCOME_STATEMENT_V2,
     CASHFLOW_STATEMENT_V2,
 )
-from finclaw.data_store.store import PriceStore
+from finclaw.data_store.storeV2 import PriceStoreV2
+from finclaw.utils.progress_bar import progress_bar
+from finclaw.vendor.constants.mic import MIC_TO_CURRENCY, EXCHANGE_TO_MIC
 from finclaw.vendor.fmp import fmp_client
-import pyarrow as pa
-
 from finclaw.vendor.fmp.fmp_client import get_financials_for
 from finclaw.vendor.fmp.models import normalize_names
 
 
-async def get_symbols(session: aiohttp.ClientSession, market: str) -> pd.DataFrame:
-    if market != "TO":
-        raise ValueError(f"Market {market} not supported")
-
+async def get_symbols(session: aiohttp.ClientSession, market: str = "") -> pd.DataFrame:
     symbols = await fmp_client.get_symbols(session=session)
     df = pd.DataFrame(data=symbols)
-    df["mic"] = ""
-    df.loc[df["stockExchange"] == "Toronto Stock Exchange", "mic"] = "XTSE"
-    df.loc[df["stockExchange"] == "TSXV", "mic"] = "XTSX"
+
+    df["mic"] = df.exchange.map(EXCHANGE_TO_MIC)
+    df["currency_name"] = df.mic.map(MIC_TO_CURRENCY)
     df = df.rename(
-        columns={"symbol": "ticker", "name": "description", "currency": "currency_name"}
+        columns={
+            "symbol": "ticker",
+            "name": "description",
+            "exchange": "exchange_name",
+        }
     )
-    df["type"] = ""
     df["figi"] = ""
+
+    if market:
+        df = df[df.mic == market]
     return df[STOCK_SYMBOL.names]
 
 
