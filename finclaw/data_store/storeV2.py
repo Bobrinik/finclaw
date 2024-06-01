@@ -4,13 +4,21 @@ from typing import Optional
 import pandas as pd
 import pyarrow as pa
 
+from finclaw.config import logger
 from finclaw.data_store.schema import OHCL
 from finclaw.data_store.storage_clients.StoreClient import StoreClient
 
 
 class PriceStoreV2:
-    def __init__(self, path_to_price_store: str, storage_client: StoreClient):
+    def __init__(
+        self,
+        path_to_price_store: str,
+        storage_client: StoreClient,
+        vendor: Optional[str] = None,
+    ):
         self._price_path: Path = Path(path_to_price_store)
+        if vendor:
+            self._price_path = self._price_path / Path(vendor)
         self._storage_client = storage_client
 
     def list_datasets(self):
@@ -117,32 +125,24 @@ class PriceStoreV2:
     ):
         # Need to store symbols into a table as well
         self.store_prices(
-            end=end,
-            frequency=frequency,
-            price_table=price_table,
-            start=start,
-            vendor=vendor,
+            end=end, frequency=frequency, price_table=price_table, start=start
         )
-        self.store_symbols(
-            symbol_table=symbol_table, start=start, end=end, vendor=vendor
-        )
+        self.store_symbols(symbol_table=symbol_table, start=start, end=end)
         if company_table:
             self.store_company_descriptions(
-                company_table=company_table, start=start, end=end, vendor=vendor
+                company_table=company_table, start=start, end=end
             )
 
-    def store_prices(self, *, end, frequency, price_table, start, vendor):
+    def store_prices(self, *, end, frequency, price_table, start):
         price_store_ds = self.get_ohclv_price_store_path(frequency)
         self._save_table(price_store_ds, price_table, start, end)
 
-    def store_symbols(
-        self, *, symbol_table, start: pd.Timestamp, end: pd.Timestamp, vendor
-    ):
-        symbol_store_ds = self.get_symbol_store_path(vendor=vendor)
+    def store_symbols(self, *, symbol_table, start: pd.Timestamp, end: pd.Timestamp):
+        symbol_store_ds = self.get_symbol_store_path()
         self._save_table(symbol_store_ds, symbol_table, start, end)
 
-    def store_company_descriptions(self, *, company_table, start, end, vendor: str):
-        company_descriptions = self.get_company_descriptions(vendor=vendor)
+    def store_company_descriptions(self, *, company_table, start, end):
+        company_descriptions = self.get_company_descriptions()
         self._save_table(company_descriptions, company_table, start, end)
 
     def store_ownership(
@@ -153,7 +153,6 @@ class PriceStoreV2:
         all_owners_table: pa.Table,
         start,
         end,
-        vendor: str,
     ):
         fund_ownership_path = self.get_ownership_store_path("fund")
         self._save_table(fund_ownership_path, fund_ownership_table, start, end)
@@ -213,6 +212,7 @@ class PriceStoreV2:
     ):
         self._storage_client.mkdir(path_to_ds, parents=True, exist_ok=True)
         dataset_name = PriceStoreV2.get_dataset_name(start=start, end=end)
+        logger.debug(f"Writing table to {path_to_ds / dataset_name}")
         self._storage_client.write_table(table, path_to_ds / dataset_name)
 
     @staticmethod

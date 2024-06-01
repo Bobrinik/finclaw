@@ -15,6 +15,9 @@ class S3StoreClient(StoreClient):
     """
 
     def __init__(self, bucket_name: str, region: str):
+        if not bucket_name:
+            raise ValueError("Bucket name should not be empty")
+
         self._s3_fs = fs.S3FileSystem(region=region)
         self._bucket_name = bucket_name
 
@@ -41,7 +44,9 @@ class S3StoreClient(StoreClient):
             )
             return [f.base_name for f in files]
         except Exception as e:
-            logger.exception(f"Exception while listing {e}")
+            logger.exception(
+                f"Exception while listing {self._bucket_name} / {path} we got {e}"
+            )
             return []
 
     def path_exists(self, path: str) -> bool:

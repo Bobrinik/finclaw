@@ -26,7 +26,9 @@ class VendorStore:
 
     def get_company_description_table(self) -> pd.DataFrame:
         for f in self.list_company_descriptions():
-            return pq.read_table(self._vendor_path / self._company_description / f).to_pandas()
+            return pq.read_table(
+                self._vendor_path / self._company_description / f
+            ).to_pandas()
 
     def list_available_resources(self):
         return list(os.listdir(self._vendor_path))
@@ -38,14 +40,18 @@ class VendorStore:
 class PriceStore:
     def __init__(self, path_to_price_store: str):
         self._price_path: Path = Path(path_to_price_store)
-        date_of_store = path_to_price_store.split("/")[-1]
 
     def list_datasets(self):
         return os.listdir(self._price_path)
 
     # Loading logic
-    def load_prices(self, *, start: Optional[pd.Timestamp] = None, end: Optional[pd.Timestamp] = None, frequency: str,
-                    vendor: str) -> pa.Table:
+    def load_prices(
+        self,
+        *,
+        start: Optional[pd.Timestamp] = None,
+        end: Optional[pd.Timestamp] = None,
+        frequency: str,
+    ) -> pa.Table:
         # sourcery skip: inline-immediately-returned-variable
         """
             Load prices from storage from start and end if exist
@@ -56,7 +62,7 @@ class PriceStore:
         self.path_exists()
 
         # Note: we can update this later to add filtering
-        price_store = self.get_ohclv_price_store_path(frequency=frequency, vendor=vendor)
+        price_store = self.get_ohclv_price_store_path(frequency=frequency)
 
         if start and end:
             price_dataset_name = PriceStore.get_dataset_name(start=start, end=end)
@@ -64,7 +70,9 @@ class PriceStore:
         else:
             tables = []
             for table_name in os.listdir(price_store):
-                table_for_one_freq = self.load_table(table_name, price_store, schema=OHCL)
+                table_for_one_freq = self.load_table(
+                    table_name, price_store, schema=OHCL
+                )
                 tables.append(table_for_one_freq)
             return pa.concat_tables(tables)
 
@@ -76,7 +84,9 @@ class PriceStore:
         table: pa.Table = dataset.read()
         return table
 
-    def load_symbols(self, *, start: pd.Timestamp, end: pd.Timestamp, vendor: str) -> pa.Table:
+    def load_symbols(
+        self, *, start: pd.Timestamp, end: pd.Timestamp, vendor: str
+    ) -> pa.Table:
         assert start < end
         self.path_exists()
 
@@ -95,7 +105,9 @@ class PriceStore:
     def load_financials(self, statement_type: str):
         self.path_exists()
 
-        financial_store_path = self.get_financial_statement_store_path(statement_type=statement_type)
+        financial_store_path = self.get_financial_statement_store_path(
+            statement_type=statement_type
+        )
         dataset = pq.ParquetDataset(financial_store_path, use_legacy_dataset=False)
         return dataset.read()
 
@@ -111,22 +123,46 @@ class PriceStore:
             raise ValueError(f"{self._price_path} does not exist")
 
     ## Store logic
-    def store(self, *, symbol_table: pa.Table, price_table: pa.Table,
-              start: pd.Timestamp,
-              end: pd.Timestamp,
-              frequency: str, vendor: str,
-              company_table: Optional[pa.Table] = None):
+    def store(
+        self,
+        *,
+        symbol_table: pa.Table,
+        price_table: pa.Table,
+        start: pd.Timestamp,
+        end: pd.Timestamp,
+        frequency: str,
+        vendor: str,
+        company_table: Optional[pa.Table] = None,
+    ):
         # Need to store symbols into a table as well
-        self.store_prices(end=end, frequency=frequency, price_table=price_table, start=start, vendor=vendor)
-        self.store_symbols(symbol_table=symbol_table, start=start, end=end, vendor=vendor)
+        self.store_prices(
+            end=end,
+            frequency=frequency,
+            price_table=price_table,
+            start=start,
+            vendor=vendor,
+        )
+        self.store_symbols(
+            symbol_table=symbol_table, start=start, end=end, vendor=vendor
+        )
         if company_table:
-            self.store_company_descriptions(company_table=company_table, start=start, end=end, vendor=vendor)
+            self.store_company_descriptions(
+                company_table=company_table, start=start, end=end, vendor=vendor
+            )
 
     def store_prices(self, *, end, frequency, price_table, start, vendor):
-        price_store_ds = self.get_ohclv_price_store_path(frequency, vendor)
+        price_store_ds = self.get_ohclv_price_store_path(frequency)
         self._save_table(price_store_ds, price_table, start, end)
 
-    def store_symbols(self, *, symbol_table, start: pd.Timestamp, end: pd.Timestamp, vendor):
+    def store_symbols(
+        self, *, symbol_table, start: pd.Timestamp, end: pd.Timestamp, vendor
+    ):
+        processing_date = pd.Timestamp.utcnow()
+        n_rows = symbol_table.shape[0]
+        symbol_table.add_column(
+            0, "meta_storage_date", [[processing_date for i in range(n_rows)]]
+        )
+
         symbol_store_ds = self.get_symbol_store_path(vendor=vendor)
         self._save_table(symbol_store_ds, symbol_table, start, end)
 
@@ -134,15 +170,25 @@ class PriceStore:
         company_descriptions = self.get_company_descriptions(vendor=vendor)
         self._save_table(company_descriptions, company_table, start, end)
 
-    def store_ownership(self, *, institutional_ownership_table: pa.Table,
-                        fund_ownership_table: pa.Table, all_owners_table: pa.Table,
-                        start, end,
-                        vendor: str):
+    def store_ownership(
+        self,
+        *,
+        institutional_ownership_table: pa.Table,
+        fund_ownership_table: pa.Table,
+        all_owners_table: pa.Table,
+        start,
+        end,
+        vendor: str,
+    ):
         fund_ownership_path = self.get_ownership_store_path("fund", vendor)
         self._save_table(fund_ownership_path, fund_ownership_table, start, end)
 
-        institutional_ownership_path = self.get_ownership_store_path("institutional", vendor)
-        self._save_table(institutional_ownership_path, institutional_ownership_table, start, end)
+        institutional_ownership_path = self.get_ownership_store_path(
+            "institutional", vendor
+        )
+        self._save_table(
+            institutional_ownership_path, institutional_ownership_table, start, end
+        )
 
         all_owners_path = self.get_ownership_store_path("all_owners", vendor)
         self._save_table(all_owners_path, all_owners_table, start, end)
@@ -156,7 +202,9 @@ class PriceStore:
         self._save_table(dividend_store_path, dividend_table, start, end)
 
     def store_financials(self, statement, financials_table, start, end, vendor):
-        statement_store_path = self.get_financial_statement_store_path(vendor, statement)
+        statement_store_path = self.get_financial_statement_store_path(
+            vendor, statement
+        )
         self._save_table(statement_store_path, financials_table, start, end)
 
     def store_splits(self, split_table, start, end, vendor):
@@ -169,8 +217,8 @@ class PriceStore:
     def get_company_descriptions(self, *, vendor: str):
         return self._price_path / vendor / "company_descriptions"
 
-    def get_ohclv_price_store_path(self, frequency, vendor):
-        return self._price_path / vendor / "ohclv" / f"frequency_{frequency}"
+    def get_ohclv_price_store_path(self, frequency):
+        return self._price_path / "ohclv" / f"frequency_{frequency}"
 
     def get_ownership_store_path(self, ownership_type, vendor):
         return self._price_path / vendor / "ownership" / ownership_type
@@ -216,7 +264,9 @@ class GsPriceStore(PriceStore):
     def __init__(self, bucket_name: str, path_to_price_store: str):
         super().__init__(path_to_price_store)
         if path_to_price_store.startswith("/"):
-            raise ValueError(f"{path_to_price_store} cannot start with / for Google Storage")
+            raise ValueError(
+                f"{path_to_price_store} cannot start with / for Google Storage"
+            )
         self.client = storage.Client()
         self.bucket = self.client.get_bucket(bucket_name)
 
@@ -231,8 +281,13 @@ class GsPriceStore(PriceStore):
 
         return False
 
-    def load_prices(self, *, start: Optional[pd.Timestamp] = None, end: Optional[pd.Timestamp] = None, frequency: str,
-                    vendor: str) -> pa.Table:
+    def load_prices(
+        self,
+        *,
+        start: Optional[pd.Timestamp] = None,
+        end: Optional[pd.Timestamp] = None,
+        frequency: str,
+    ) -> pa.Table:
         # sourcery skip: inline-immediately-returned-variable
         """
             Load prices from storage from start and end if exist
@@ -244,11 +299,12 @@ class GsPriceStore(PriceStore):
             raise ValueError(f"{self._price_path} does not exist")
 
         # Note: we can update this later to add filtering
-        price_store = self.get_ohclv_price_store_path(frequency=frequency, vendor=vendor)
+        price_store = self.get_ohclv_price_store_path(frequency=frequency)
 
         if start and end:
             price_dataset_name = PriceStore.get_dataset_name(start=start, end=end)
             return self.load_table(price_dataset_name, price_store, OHCL)
         else:
-            return pq.read_table(f"gs://{self.bucket.name}/{self._price_path}", schema=OHCL)
-
+            return pq.read_table(
+                f"gs://{self.bucket.name}/{self._price_path}", schema=OHCL
+            )

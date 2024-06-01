@@ -7,8 +7,10 @@ import pyarrow as pa
 import pytz
 from pandas import Timestamp
 
+from finclaw.config import logger
 from finclaw.data_store.schema import OHCL, STOCK_SYMBOL
 from finclaw.data_store.store import PriceStore
+from finclaw.data_store.storeV2 import PriceStoreV2
 from finclaw.utils.progress_bar import progress_bar
 from finclaw.vendor.twelvedata import twelve_client as twclient
 
@@ -59,7 +61,7 @@ async def get_ohcl_data(
     end: Timestamp,
     symbols: List[str],
     frequency: str,
-    mic_code: str
+    mic_code: str,
 ) -> pd.DataFrame:
     if start > end:
         raise ValueError("Start date cannot be greater than end date")
@@ -104,26 +106,24 @@ async def get_ohcl_table_for(
 
 
 def pull_symbols(
-    *, store: PriceStore, market_id_code: str, start: pd.Timestamp, end: pd.Timestamp
+    *, store: PriceStoreV2, market_id_code: str, start: pd.Timestamp, end: pd.Timestamp
 ):
     symbol_table = asyncio.run(get_symbol_table(market_id_code=market_id_code))
-    store.store_symbols(symbol_table=symbol_table, start=start, end=end, vendor=VENDOR)
+    store.store_symbols(symbol_table=symbol_table, start=start, end=end)
 
 
 def pull_ohcl_data(
     *,
-    store: PriceStore,
+    store: PriceStoreV2,
     symbols: List[str],
     start: Timestamp,
     end: Timestamp,
     frequency: str,
-    market_id_code: str
+    market_id_code: str,
 ):
     table = asyncio.run(
         get_ohcl_table_for(
             start, end, symbols, frequency, market_id_code=market_id_code
         )
     )
-    store.store_prices(
-        price_table=table, start=start, end=end, vendor=VENDOR, frequency=frequency
-    )
+    store.store_prices(price_table=table, start=start, end=end, frequency=frequency)

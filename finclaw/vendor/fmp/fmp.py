@@ -100,32 +100,36 @@ async def get_ohcl_table_for(
 
 
 def pull_symbols(
-    *, store: PriceStore, market: str, start: pd.Timestamp, end: pd.Timestamp
+    *,
+    store: PriceStoreV2,
+    market: str,
+    start: pd.Timestamp,
+    end: pd.Timestamp,
 ):
     symbol_table = asyncio.run(get_symbol_table(market=market))
-    store.store_symbols(symbol_table=symbol_table, start=start, end=end, vendor="fmp")
+    store.store_symbols(symbol_table=symbol_table, start=start, end=end)
 
 
 def pull_ohcl_data(
     *,
-    store: PriceStore,
+    store: PriceStoreV2,
     symbols: List[str],
     start: Timestamp,
     end: Timestamp,
     frequency: str,
 ):
     table = asyncio.run(get_ohcl_table_for(start, end, symbols, frequency))
-    store.store_prices(
-        price_table=table, start=start, end=end, vendor="fmp", frequency=frequency
-    )
+    store.store_prices(price_table=table, start=start, end=end, frequency=frequency)
 
 
 async def get_financials(
-    symbols: List[str], start: pd.Timestamp, end: pd.Timestamp, statement, freq
+    symbols: List[str], statement: str, freq: str
 ) -> Optional[pa.Table]:
     """
     This endpoint gets all the available financials for a symbol,
     start and end are ignored but left for uniform interface across vendors
+    statement: bs,ic,cf
+    freq: annual, quarter
     Examples:
         table = await get_financials(["L.TO"], start, end, "bs", "quarterly") # Balance sheet pyarrow.Table
     """

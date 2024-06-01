@@ -4,8 +4,9 @@ import click
 import pandas as pd
 from pandas import Timestamp
 
-from finclaw.config import settings
+from finclaw.config import settings, logger
 from finclaw.data_store.storage_clients import S3StoreClient
+from finclaw.data_store.storage_clients.LocalStoreClient import LocalStoreClient
 from finclaw.data_store.store import PriceStore
 from finclaw.data_store.storeV2 import PriceStoreV2
 from finclaw.utils.cli_utils import Date
@@ -34,7 +35,7 @@ def fmp_vendor(
     market,
     start: pd.Timestamp,
     end: pd.Timestamp,
-    symbol: Optional[List[str]] = None
+    symbol: Optional[List[str]] = None,
 ):
     include_information = include_information.split(",")
     if not symbol:
@@ -68,17 +69,22 @@ def twelve_data_vendor(
     include_information: str,
     market_id_code: str,
     start: pd.Timestamp,
-    end: pd.Timestamp
+    end: pd.Timestamp,
+    symbols,
 ):
     if "p" in include_information:
-        symbols = (
-            asyncio.run(twelve.get_symbol_table(market_id_code=market_id_code))
-            .to_pandas()
-            .ticker.values
-        )
-        twelve.pull_symbols(
-            store=store, market_id_code=market_id_code, start=start, end=end
-        )
+        if not symbols:
+            symbols = (
+                asyncio.run(twelve.get_symbol_table(market_id_code=market_id_code))
+                .to_pandas()
+                .ticker.values
+            )
+            twelve.pull_symbols(
+                store=store, market_id_code=market_id_code, start=start, end=end
+            )
+        else:
+            symbols = symbols
+
         twelve.pull_ohcl_data(
             store=store,
             symbols=symbols,
@@ -172,9 +178,11 @@ def grab(
                 "When using s3 as storage backend you must specify bucket name and region"
             )
         storage_client = S3StoreClient(bucket_name=bucket_name, region=region)
-        store = PriceStoreV2(settings.TRADE_ENGINE_DATA, storage_client)
+        store = PriceStoreV2(settings.TRADE_ENGINE_DATA, storage_client, vendor=vendor)
     else:
-        store = PriceStore(settings.TRADE_ENGINE_DATA)
+        storage_client = LocalStoreClient()
+        store = PriceStoreV2(settings.TRADE_ENGINE_DATA, storage_client, vendor=vendor)
+    logger.info(f"Storage path: {settings.TRADE_ENGINE_DATA}")
 
     if vendor == "finnhub":
         finnhub_vendor(store, end, frequency, include_information, market, start)
@@ -196,6 +204,7 @@ def grab(
             market_id_code=market_id_code,
             start=start,
             end=end,
+            symbols=symbol,
         )
 
 

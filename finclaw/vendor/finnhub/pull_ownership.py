@@ -67,5 +67,4 @@ def pull_ownership_data_for(*, store, symbols, start, end):
         all_owners_table=all_owners,
         start=start,
         end=end,
-        vendor="finnhub",
     )

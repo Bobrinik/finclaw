@@ -51,9 +51,7 @@ class DataPortal:
     def load_price_data(
         self, *, start: pd.Timestamp, end: pd.Timestamp, frequency: str, vendor: str
     ) -> pa.Table:
-        return self._price_store.load_prices(
-            start=start, end=end, frequency=frequency, vendor=vendor
-        )
+        return self._price_store.load_prices(start=start, end=end, frequency=frequency)
 
     def init(self):
         price = self.load_price_data(
@@ -120,7 +118,7 @@ def get_ohclv(
     validate_vendor(vendor)
 
     if isinstance(store, PriceStore):
-        price = store.load_prices(frequency=frequency, vendor=vendor)
+        price = store.load_prices(frequency=frequency)
 
     elif isinstance(store, list):
         price = pa.concat_tables(
