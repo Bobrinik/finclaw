@@ -56,5 +56,11 @@ class LocalStoreClient(StoreClient):
             path = path.as_posix()
         logger.debug(f"Writing table to {path}")
         logger.debug(f"Table schema: {table.schema}")
-        pq.write_to_dataset(table, path)
+        # This will over-write existing dataset
+        pq.write_to_dataset(
+            table,
+            path,
+            use_legacy_dataset=False,
+            existing_data_behavior="delete_matching",
+        )
         logger.debug(f"{list(os.listdir(path))}")

@@ -21,12 +21,12 @@ async def _call_api(
         raise ValueError("You need to specify TWELVEDATA_API_KEY")
     querystring["apikey"] = settings.TWELVEDATA_API_KEY
     logger.debug(f"Calling {url} with {querystring}")
-    del querystring["mic_code"]
+    # del querystring["mic_code"]
     async with session.get(url, data=payload, params=querystring) as resp:
         logger.debug(f"Calling {url} with {querystring}")
         try:
             json_response = await resp.json()
-            logger.debug(f"Response: {json_response}")
+            # logger.debug(f"Response: {json_response}")
             if return_code := json_response.get("code", None):
                 if return_code == 429:
                     if error_count > 5:

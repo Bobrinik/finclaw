@@ -172,16 +172,25 @@ def grab(
         market: Market to pull data from: US, TO ...
         frequency: Granularity of the data: 1, 5, 15, 30, 60, D, W, M
     """
+    market_partition = market_id_code if market_id_code else market
     if storage_type.lower() == "s3":
         if bucket_name is None and region is None:
             raise ValueError(
                 "When using s3 as storage backend you must specify bucket name and region"
             )
         storage_client = S3StoreClient(bucket_name=bucket_name, region=region)
-        store = PriceStoreV2(settings.TRADE_ENGINE_DATA, storage_client, vendor=vendor)
+        store = PriceStoreV2(
+            settings.TRADE_ENGINE_DATA,
+            storage_client,
+            vendor=vendor + "/" + market_partition,
+        )
     else:
         storage_client = LocalStoreClient()
-        store = PriceStoreV2(settings.TRADE_ENGINE_DATA, storage_client, vendor=vendor)
+        store = PriceStoreV2(
+            settings.TRADE_ENGINE_DATA,
+            storage_client,
+            vendor=vendor + "/" + market_partition,
+        )
     logger.info(f"Storage path: {settings.TRADE_ENGINE_DATA}")
 
     if vendor == "finnhub":
