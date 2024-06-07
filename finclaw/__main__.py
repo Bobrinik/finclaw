@@ -122,7 +122,6 @@ def twelve_data_vendor(
 @click.option(
     "-m",
     "--market",
-    type=click.Choice(["US", "TO"]),
     help="What's the market to use?",
     required=False,
 )
