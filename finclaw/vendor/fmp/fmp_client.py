@@ -33,7 +33,6 @@ async def _call_api(
 
 
 async def get_symbols(session: aiohttp.ClientSession):
-    querystring = {}
     return await _call_api(
         session,
         f"{API_BASE}stock/list",
