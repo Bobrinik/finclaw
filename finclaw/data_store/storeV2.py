@@ -217,7 +217,8 @@ class PriceStoreV2:
 
     @staticmethod
     def get_dataset_name(*, start: pd.Timestamp, end: pd.Timestamp):
-        return f"{start.isoformat()}_{end.isoformat()}.parquet"
+        now = pd.Timestamp.utcnow()
+        return f"pull_year={now.year}/pull_month={now.month}/pull_day={now.day}/pull_time={now.hour}:{now.minute}:{now.second}{now.tzinfo}"
 
     def list_vendors(self):
         # price_root = self._price_path
