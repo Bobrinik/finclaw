@@ -166,7 +166,7 @@ def pull_financials(
         "cf": "cashflow_statement",
     }
 
-    if statements in set(type_to_statement.keys()):
+    if not statements.issubset(set(type_to_statement.keys())):
         raise ValueError(
             f"statements:{statements} should be one of {type_to_statement.keys()}"
         )
