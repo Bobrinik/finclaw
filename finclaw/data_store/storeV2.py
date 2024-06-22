@@ -5,8 +5,70 @@ import pandas as pd
 import pyarrow as pa
 
 from finclaw.config import logger
+from finclaw.data_store.path_names import (
+    BALANCE_SHEET,
+    FINANCIALS,
+    INCOME_STATEMENT,
+    CASHFLOW_STATEMENT,
+)
 from finclaw.data_store.schema import OHCL
 from finclaw.data_store.storage_clients.StoreClient import StoreClient
+
+
+class Exchange:
+    def __init__(self, path, storage_client: StoreClient):
+        self._storage_client = storage_client
+        self._path = Path(path)
+
+    def load_table(self, price_dataset, price_store, *, schema: pa.Schema) -> pa.Table:
+        price_path = price_store / price_dataset
+        if not self._storage_client.path_exists(price_path):
+            raise ValueError(f"{price_path} does not exist")
+
+        table = self._storage_client.load_table(price_path, schema=schema)
+        return table
+
+    def load_ohclv(
+        self,
+        *,
+        frequency: str,
+    ) -> pa.Table:
+        """
+            Load prices from storage from start and end if exist
+        :return:
+        """
+
+        if not self._storage_client.path_exists(self._path):
+            raise ValueError(f"{self._path} does not exist")
+
+        # Note: we can update this later to add filtering
+        path_to_ohclv_store = self._path / "ohclv" / f"frequency_{frequency}"
+
+        tables = []
+        for table_name in self._storage_client.listdir(path_to_ohclv_store):
+            table_for_one_freq = self.load_table(
+                table_name, path_to_ohclv_store, schema=OHCL
+            )
+            tables.append(table_for_one_freq)
+        return pa.concat_tables(tables)
+
+    def load_balance_sheets(self) -> pa.Table:
+        path_to_balance = self._path / FINANCIALS / BALANCE_SHEET
+        table = self._storage_client.load_table(path_to_balance)
+        return table
+
+    def load_income_sheets(self) -> pa.Table:
+        path_to_balance = self._path / FINANCIALS / INCOME_STATEMENT
+        table = self._storage_client.load_table(path_to_balance)
+        return table
+
+    def load_cashflow_statement(self):
+        path_to_balance = self._path / FINANCIALS / CASHFLOW_STATEMENT
+        table = self._storage_client.load_table(path_to_balance)
+        return table
+
+    def __repr__(self):
+        return str(self._path)
 
 
 class PriceStoreV2:
@@ -21,9 +83,24 @@ class PriceStoreV2:
             self._price_path = self._price_path / Path(vendor)
         self._storage_client = storage_client
 
-    def list_datasets(self):
+    def list_exchanges(self):
+        exchanges = dict()
         if self._storage_client.path_exists(self._price_path):
-            return self._storage_client.listdir(self._price_path)
+            for dataset_name in self._storage_client.listdir(self._price_path):
+                ex = Exchange(self._price_path / dataset_name, self._storage_client)
+                exchanges[dataset_name] = ex
+            return exchanges
+        else:
+            raise ValueError(f"price_path: {self._price_path} does not exit")
+
+    def load_dataset(self, name, frequency) -> pa.Table:
+        if self._storage_client.path_exists(self._price_path):
+            datasets = self._storage_client.listdir(self._price_path)
+            for dataset_name in datasets:
+                if dataset_name == name:
+                    return self.load_prices_from(
+                        base_path=dataset_name, frequency=frequency
+                    )
         else:
             raise ValueError(f"price_path: {self._price_path} does not exit")
 
@@ -44,7 +121,9 @@ class PriceStoreV2:
         self.path_exists()
 
         # Note: we can update this later to add filtering
-        path_to_ohclv_store = self.get_ohclv_price_store_path(frequency=frequency)
+        path_to_ohclv_store = self.get_ohclv_price_store_path(
+            frequency=frequency, base_path=None
+        )
 
         if start and end:
             price_dataset_name = PriceStoreV2.get_dataset_name(start=start, end=end)
@@ -134,7 +213,7 @@ class PriceStoreV2:
             )
 
     def store_prices(self, *, end, frequency, price_table, start):
-        price_store_ds = self.get_ohclv_price_store_path(frequency)
+        price_store_ds = self.get_ohclv_price_store_path(frequency, None)
         self._save_table(price_store_ds, price_table, start, end)
 
     def store_symbols(self, *, symbol_table, start: pd.Timestamp, end: pd.Timestamp):
@@ -173,10 +252,8 @@ class PriceStoreV2:
         dividend_store_path = self.get_dividend_store_path()
         self._save_table(dividend_store_path, dividend_table, start, end)
 
-    def store_financials(self, statement, financials_table, start, end, vendor):
-        statement_store_path = self.get_financial_statement_store_path(
-            vendor, statement
-        )
+    def store_financials(self, statement, financials_table: pa.Table, start, end):
+        statement_store_path = self._price_path / FINANCIALS / statement
         self._save_table(statement_store_path, financials_table, start, end)
 
     def store_splits(self, split_table, start, end):
@@ -189,8 +266,11 @@ class PriceStoreV2:
     def get_company_descriptions(self):
         return self._price_path / "company_descriptions"
 
-    def get_ohclv_price_store_path(self, frequency):
-        return self._price_path / "ohclv" / f"frequency_{frequency}"
+    def get_ohclv_price_store_path(self, frequency, base_path):
+        if base_path:
+            return base_path / "ohclv" / f"frequency_{frequency}"
+        else:
+            return self._price_path / "ohclv" / f"frequency_{frequency}"
 
     def get_ownership_store_path(self, ownership_type):
         return self._price_path / "ownership" / ownership_type
@@ -202,7 +282,7 @@ class PriceStoreV2:
         return self._price_path / "dividends"
 
     def get_financial_statement_store_path(self, statement_type):
-        return self._price_path / statement_type
+        return self._price_path / FINANCIALS / statement_type
 
     def get_split_store_path(self):
         return self._price_path / "splits"

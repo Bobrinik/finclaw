@@ -52,6 +52,9 @@ class LocalStoreClient(StoreClient):
         return table
 
     def write_table(self, table: pa.Table, path: str | Path):
+        if not isinstance(table, pa.Table):
+            raise TypeError(f"table should be of type {pa.Table}")
+
         if isinstance(path, Path):
             path = path.as_posix()
         logger.debug(f"Writing table to {path}")

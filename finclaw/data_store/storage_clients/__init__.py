@@ -1,1 +1,2 @@
 from finclaw.data_store.storage_clients.S3Client import S3StoreClient
+from finclaw.data_store.storage_clients.LocalStoreClient import LocalStoreClient

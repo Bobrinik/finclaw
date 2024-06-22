@@ -173,7 +173,7 @@ def pull_financials(
 
     frequency = "quarter"
     for statement in statements:
-        table = asyncio.run(get_financials(symbols, start, end, statement, frequency))
+        table = asyncio.run(get_financials(symbols, statement, frequency))
         store.store_financials(
             statement=type_to_statement[statement],
             financials_table=table,
