@@ -179,5 +179,4 @@ def pull_financials(
             financials_table=table,
             start=start,
             end=end,
-            vendor="fmp",
         )
