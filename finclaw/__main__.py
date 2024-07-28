@@ -3,6 +3,7 @@ from typing import Optional, List
 
 import click
 import pandas as pd
+import pytz
 from pandas import Timestamp
 
 from finclaw.config import settings, logger
@@ -102,14 +103,14 @@ def twelve_data_vendor(
 @click.option(
     "-s",
     "--start",
-    type=Date(tz="utc", as_timestamp=False),
+    type=Date(tz=pytz.UTC, as_timestamp=False),
     help="The start date from which to pull data.",
     required=True,
 )
 @click.option(
     "-e",
     "--end",
-    type=Date(tz="utc", as_timestamp=False),
+    type=Date(tz=pytz.UTC, as_timestamp=False),
     help="The end date from which to pull data.",
     required=True,
 )

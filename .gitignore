@@ -296,3 +296,5 @@ data/*
 crons/*
 notebooks/*
 .idea/
+/data/
+finnhub_data/*
