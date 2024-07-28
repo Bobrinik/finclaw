@@ -7,9 +7,7 @@ import pyarrow as pa
 import pytz
 from pandas import Timestamp
 
-from finclaw.config import logger
 from finclaw.data_store.schema import OHCL, STOCK_SYMBOL
-from finclaw.data_store.store import PriceStore
 from finclaw.data_store.storeV2 import PriceStoreV2
 from finclaw.utils.progress_bar import progress_bar
 from finclaw.vendor.twelvedata import twelve_client as twclient

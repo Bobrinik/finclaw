@@ -56,7 +56,7 @@ class S3StoreClient(StoreClient):
         -------
             Boolean
         """
-        file_path = f"{self._bucket_name}/{path}"
+        file_path = self.get_store_path(path)
         result = self._s3_fs.get_file_info(file_path)
         return result.type != fs.FileType.NotFound
 
@@ -69,9 +69,12 @@ class S3StoreClient(StoreClient):
         table: pa.Table = dataset.read()
         return table
 
-    def write_table(self, table: pa.Table, path: str | Path):
+    def get_store_path(self, path: str | Path) -> str:
         if isinstance(path, Path):
             path = path.as_posix()
-        pq.write_to_dataset(
-            table, f"{self._bucket_name}/{path}", filesystem=self._s3_fs
-        )
+        # Normalize the path to remove leading slashes
+        normalized_path = path.lstrip("/")
+        return str(Path(self._bucket_name) / normalized_path)
+
+    def write_table(self, table: pa.Table, path: str | Path):
+        pq.write_to_dataset(table, self.get_store_path(path), filesystem=self._s3_fs)

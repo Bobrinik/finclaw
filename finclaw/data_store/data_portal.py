@@ -1,4 +1,3 @@
-import os
 from collections import namedtuple
 from datetime import timedelta
 from typing import List, Optional, Union, Dict
@@ -6,12 +5,8 @@ from typing import List, Optional, Union, Dict
 import pandas as pd
 import pyarrow as pa
 
-from finclaw.data_store.storeV2 import PriceStoreV2
-from finclaw.utils.progress_bar import progress_bar
-
 from finclaw.config import settings
-from finclaw.data_store.store import PriceStore
-from finclaw.data_store.validators import validate_vendor
+from finclaw.data_store.storeV2 import PriceStoreV2
 
 DataChunk = namedtuple("DataChunk", ["current_date", "price_ohcl_daily"])
 
@@ -39,7 +34,7 @@ class DataPortal:
     """
 
     def __init__(
-        self, price_store: PriceStore, start: pd.Timestamp, end: pd.Timestamp, step
+        self, price_store: PriceStoreV2, start: pd.Timestamp, end: pd.Timestamp, step
     ):
         self.price_data: Optional[pd.DataFrame] = None
         self._price_store = price_store
@@ -79,19 +74,7 @@ class DataPortal:
         )
 
 
-def list_stores(
-    path=settings.TRADE_ENGINE_DATA, is_dict=False
-) -> Union[List[PriceStore], Dict[str, PriceStore]]:
-    if not is_dict:
-        return [PriceStore(path + "/" + ps_path) for ps_path in os.listdir(path)]
-    result = {}
-    for ps_path in os.listdir(path):
-        ps = PriceStore(path + "/" + ps_path)
-        result[f"{repr(ps)}"] = ps
-    return result
-
-
-def list_stores_s3(
+def list_vendors(
     storage_client, path=settings.TRADE_ENGINE_DATA, is_dict=False
 ) -> Union[List[PriceStoreV2], Dict[str, PriceStoreV2]]:
     if not is_dict:
@@ -104,69 +87,3 @@ def list_stores_s3(
         ps = PriceStoreV2(path + "/" + ps_path, storage_client)
         result[f"{repr(ps)}"] = ps
     return result
-
-
-def get_ohclv(
-    store: Union[PriceStore, List[PriceStore]], *, frequency: str, vendor: str
-) -> pa.Table:
-    """
-    Args:
-        vendor:
-        store:
-        frequency:
-    """
-    validate_vendor(vendor)
-
-    if isinstance(store, PriceStore):
-        price = store.load_prices(frequency=frequency)
-
-    elif isinstance(store, list):
-        price = pa.concat_tables(
-            [
-                get_ohclv(
-                    s,
-                    frequency=frequency,
-                    vendor=vendor,
-                )
-                for s in progress_bar(store)
-            ]
-        )
-    else:
-        raise ValueError("store needs to be a PriceStore or a List[PriceStore]")
-
-    return price
-
-
-def get_financials(
-    store: Union[PriceStore, List[PriceStore]], *, vendor: str, statement_type: str
-) -> pa.Table:
-    validate_vendor(vendor)
-    if isinstance(store, PriceStore):
-        financials = store.load_financials(vendor=vendor, statement_type=statement_type)
-    elif isinstance(store, list):
-        financials = pa.concat_tables(
-            [
-                get_financials(
-                    s,
-                    vendor=vendor,
-                    statement_type=statement_type,
-                )
-                for s in progress_bar(store)
-            ]
-        )
-    else:
-        raise ValueError("store needs to be a PriceStore or a List[PriceStore]")
-    return financials
-
-
-def get_insiders(store: Union[PriceStore, List[PriceStore]], *, vendor) -> pa.Table:
-    validate_vendor(vendor)
-    if isinstance(store, PriceStore):
-        insiders = store.load_insiders(vendor=vendor)
-    elif isinstance(store, list):
-        insiders = pa.concat_tables(
-            [get_insiders(s, vendor=vendor) for s in progress_bar(store)]
-        )
-    else:
-        raise ValueError("store needs to be a PriceStore or a List[PriceStore]")
-    return insiders

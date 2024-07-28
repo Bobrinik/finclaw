@@ -6,12 +6,10 @@ import pandas as pd
 import pyarrow as pa
 from pandas import Timestamp
 
-from finclaw.config import settings, logger
-from finclaw.data_store.store import PriceStore
-from finclaw.vendor.finnhub.finnhub_client import get_financials_for
-from finclaw.vendor.finnhub import models
-from finclaw.vendor.finnhub.symbols import get_symbols_for
+from finclaw.config import logger
 from finclaw.utils.progress_bar import progress_bar
+from finclaw.vendor.finnhub import models
+from finclaw.vendor.finnhub.finnhub_client import get_financials_for
 
 
 async def get_financials(

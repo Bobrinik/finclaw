@@ -1,4 +1,5 @@
 import asyncio
+from typing import Optional, List
 
 import click
 import pandas as pd
@@ -8,7 +9,6 @@ from pandas import Timestamp
 from finclaw.config import settings, logger
 from finclaw.data_store.storage_clients import S3StoreClient
 from finclaw.data_store.storage_clients.LocalStoreClient import LocalStoreClient
-from finclaw.data_store.store import PriceStore
 from finclaw.data_store.storeV2 import PriceStoreV2
 from finclaw.utils.cli_utils import Date
 from finclaw.vendor import twelvedata as twelve
@@ -20,7 +20,6 @@ from finclaw.vendor.finnhub.pull_ownership import pull_ownership_data_for
 from finclaw.vendor.finnhub.pull_splits import pull_splits
 from finclaw.vendor.finnhub.symbols import get_symbols_for
 from finclaw.vendor.fmp import fmp
-from typing import Optional, List
 
 
 @click.group
@@ -45,6 +44,8 @@ def fmp_vendor(
         )
     else:
         symbols: List[str] = symbol
+
+    logger.info(f"Pulling data for Symbols: {len(symbols)}")
 
     if "p" in include_information:
         fmp.pull_symbols(store=store, market=market, start=start, end=end)
@@ -130,7 +131,10 @@ def twelve_data_vendor(
     "-mic", "--market-id-code", help="Market identification code", required=False
 )
 @click.option(
-    "-ic", "--include-information", help="Information to include", required=True
+    "-ic",
+    "--include-information",
+    help="Information to include: p,bs,in,cf",
+    required=True,
 )
 @click.option(
     "-v",
@@ -241,6 +245,7 @@ def finnhub_vendor(store, end, frequency, include_information, market, start):
         )
 
 
+# TODO: Add command to list supporting exchanges
 # Press the green button in the gutter to run the script.
 if __name__ == "__main__":
     main()

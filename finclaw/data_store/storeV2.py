@@ -10,6 +10,7 @@ from finclaw.data_store.path_names import (
     FINANCIALS,
     INCOME_STATEMENT,
     CASHFLOW_STATEMENT,
+    OHCLV,
 )
 from finclaw.data_store.schema import OHCL
 from finclaw.data_store.storage_clients.StoreClient import StoreClient
@@ -51,6 +52,21 @@ class Exchange:
             )
             tables.append(table_for_one_freq)
         return pa.concat_tables(tables)
+
+    def load_symbols(
+        self,
+    ) -> pa.Table:
+        """
+            Load prices from storage from start and end if exist
+        :return:
+        """
+        if not self._storage_client.path_exists(self._path):
+            raise ValueError(f"{self._path} does not exist")
+
+        # Note: we can update this later to add filtering
+        path_to_symbols = self._path / "symbols"
+
+        return self._storage_client.load_table(path_to_symbols)
 
     def load_balance_sheets(self) -> pa.Table:
         path_to_balance = self._path / FINANCIALS / BALANCE_SHEET
